@@ -1,0 +1,6 @@
+This is a very basic Web Services client to drive the RPiLCD_Web_Service
+
+The python script scrapes the output of the direwolf APRS program and genearates
+a web service request based on that data.
+
+Brent 28Mar2015
