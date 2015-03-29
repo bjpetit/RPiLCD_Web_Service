@@ -11,6 +11,7 @@
 import Adafruit_CharLCD as LCD
 import threading
 import time
+import datetime
 import sys
 
 lcd = LCD.Adafruit_CharLCDPlate()
@@ -24,10 +25,11 @@ screen_lock   = threading.Lock()
 message_queue = []
 
 # Stat Counters
-message_count = 0
-receive_count = 0
+message_count  = 0
+receive_count  = 0
 transmit_count = 0
-igate_count = 0
+igate_count    = 0
+start_time     = datetime.datetime.now()
 
 #
 # Public: lcdMessageInsert
@@ -56,7 +58,8 @@ def lcdGetStats():
       'message_count'  : message_count,
       'receive_count'  : receive_count,
       'transmit_count' : transmit_count,
-      'igate_count'    : igate_count
+      'igate_count'    : igate_count,
+      'uptime'         : str(datetime.datetime.now() - start_time)
    }
 
    return stat_list
