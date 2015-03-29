@@ -30,33 +30,78 @@ transmit_msgs = 0
 gate_msgs = 0
 
 #
+# Public: lcdMessageInsert
+#  insert message into the message queue
+#  TODO: List size management
+#
+def lcdMessageInsert(type, call, path, description):
+   global message_count
+   call = call + ">"
+   my_entry = [ type, call, path, description ]
+   mq_lock.acquire()
+   message_queue.append(my_entry)
+   message_count = message_count + 1
+   mq_work.set()
+   mq_lock.release()
+
+#  print "Exiting lcdMessageInsert"
+
+#
+# Public: lcdMessageLoop
+# Thread: Main Message handler loop
+#
+def lcdMessageLoop():
+   print "Starting LCD Update Loop"
+   screen_lock.acquire()
+   lcd.clear()
+   _lcdSetScreenColor("GRAY")
+   lcd.message(sys.argv[0] + "\nWelcome...")
+   while len(message_queue) == 0:
+      mq_work.wait(.25)
+      lcd.move_left()
+   screen_lock.release()
+
+   while 1:
+   
+      # Wait for some work to do
+      while len(message_queue) == 0:
+         mq_work.wait(30)
+      
+      _lcdProcessInputQueue()
+
+      # print "Queue depth " + str(len(message_queue)) + "\n"
+
+#     print "Exiting lcdMessageLoop"
+
+
+#
+# Public: lcdButtonLoop
+# Thread: Main button handler loop
+#
+def lcdButtonLoop():
+   while 1:
+      _lcdCheckButtons()
+
+#  print "Exiting lcdButtonLoop"
+
+#
+# Private: _lcdScreenUpdate
 # Handle updates to LCD screen
 # set new message and set screen color
 # Scroll text until more work comes in
 # Text1 = static text top row left
 # Text2 = scrolling text remaining top row
 # Text3 = scrolling text all bottom row
-#  Note we loop in this function to handle
-#  scrolling. 
+#   Note we loop in this function to handle
+#   scrolling.
 #
-def lcdUpdate(color, text1, text2, text3):
+def _lcdScreenUpdate(color, text1, text2, text3):
    # Utility string to clear ranges of screen
    clear_string = "                "
 
    # Set a color for the background
-   # TODO: Should this be its own function?
-   if(color == "RED"):
-      lcd.set_color(1, 0, 0)
-   elif(color == "GREEN"):
-      lcd.set_color(0, 1, 0)
-   elif(color == "BLUE"):
-      lcd.set_color(0, 0, 1)
-   elif(color == "YELLOW"):
-      lcd.set_color(1, 1, 0)
-   elif(color == "PURPLE"):
-      lcd.set_color(.75, 0, 1)
-   else:
-      lcd.set_color(1, 1, 1)
+   _lcdSetScreenColor(color)
+
    # Clear the current content
    lcd.clear()
 
@@ -147,10 +192,11 @@ def lcdUpdate(color, text1, text2, text3):
       # wait a little 
       time.sleep(.25)
    
-# print "Exiting lcdUpdate"
+# print "Exiting _lcdScreenUpdate"
 
 
 # 
+# Private: _lcdCheckButtons
 # If a button is pressed determine the action and build display
 # text. The button pushes take precidence over the message queue
 # The screen_lock will hold off updates from the message_queue 
@@ -161,7 +207,7 @@ def lcdUpdate(color, text1, text2, text3):
 #       polling? If not, what is the right sleep time to ensure 
 #       we are responsive enough, but not spinning too hard?
 #
-def _check_buttons():
+def _lcdCheckButtons():
    global message_count, receive_msgs, transmit_msgs, gate_msgs
    status_display = 0      # Button has been pushed
    updates_screen = False  # Iteration will update screen
@@ -226,10 +272,10 @@ def _check_buttons():
              elif status_screen == 4:
                 message_string = "iGate:\n" + str(gate_msgs)
              elif status_screen == 5:
-                message_string = "About: " + ProgramName + "\nVersion: " + ProgramVersion
+                message_string = "About:\n" + sys.argv[0]
 
              # Update the message on the screen
-             lcdUpdate("YELLOW", message_string, "", "") 
+             _lcdScreenUpdate("YELLOW", message_string, "", "")
 
              # Don't spin too hard
              time.sleep(.15)
@@ -242,48 +288,16 @@ def _check_buttons():
       else:
          # Don't spin too hard
          time.sleep(.15)
-             
-       # print "Exiting _check_buttons"
-#
-# Thread: Main Message handler loop
-#
-def lcdMessageLoop():
-   print "Starting LCD Update Loop"
-   screen_lock.acquire()
-   lcd.clear()
-   lcd.set_color(0.5, 0.5, 0.5)
-   lcd.message(sys.argv[0] + "\nWelcome...")
-   while len(message_queue) == 0:
-      mq_work.wait(.25)
-      lcd.move_left()
-   screen_lock.release()
 
-   while 1:
-   
-      # Wait for some work to do
-      while len(message_queue) == 0:
-         mq_work.wait(30)
-      
-      _process_input_queue()
+#  print "Exiting _lcdCheckButtons"
 
-      print "Queue depth " + str(len(message_queue)) + "\n"
 
 
 #
-# Thread: Main button handler loop
+#  Private: _lcdProcessInputQueue
+#  work off the list of messages to display
 #
-def lcdButtonLoop():
-   while 1:
-      #print "lcdButtonLoop iteration\n"
-      _check_buttons()
-
-
-#
-# process_input_queue
-#  work off the list of messages to display 
-#  TODO: Scroll long messages
-#
-def _process_input_queue():
+def _lcdProcessInputQueue():
    global receive_msgs, transmit_msgs, gate_msgs
    # Pull an entry off the queue
    mq_lock.acquire()
@@ -314,10 +328,10 @@ def _process_input_queue():
       path = message_entry[2]
       description = message_entry[3]
 
-      print "processing message"
+      # print "processing message"
 
       screen_lock.acquire()
-      lcdUpdate(color, call, path, description) 
+      _lcdScreenUpdate(color, call, path, description)
       screen_lock.release()
 
       # We're about to look at the queue at the top of the loop
@@ -327,22 +341,27 @@ def _process_input_queue():
    # Release it on the way out...
    mq_lock.release()
 
+#  print "Exiting _lcdProcessInputQueue"
+
 #
-# insert message into the message queue
-#  button messages go to the head of the line 
-#  TODO: List size management
+# Private: _lcdSetScreenColor
 #
-def lcdMessageInsert(type, call, path, description):
-   global message_count
-   call = call + ">"
-   my_entry = [ type, call, path, description ]
-   mq_lock.acquire()
-   message_queue.append(my_entry)
-   message_count = message_count + 1
-   mq_work.set()
-   mq_lock.release()
+def _lcdSetScreenColor(color):
+ 
+   # Set a color for the background
+   if(color == "RED"):
+      lcd.set_color(1, 0, 0)
+   elif(color == "GREEN"):
+      lcd.set_color(0, 1, 0)
+   elif(color == "BLUE"):
+      lcd.set_color(0, 0, 1)
+   elif(color == "YELLOW"):
+      lcd.set_color(1, 1, 0)
+   elif(color == "PURPLE"):
+      lcd.set_color(.75, 0, 1)
+   elif(color == "GRAY"):
+      lcd.set_color(.5, .5, .5)
+   else:
+      lcd.set_color(1, 1, 1)
    
-
-
-   
-
+#  print "Exiting _lcdSetScreenColor
