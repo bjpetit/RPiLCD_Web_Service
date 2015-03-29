@@ -3,12 +3,11 @@
 #  Brent Petit - 2015
 #
 # 
-import time
-import random
 import requests
 import json
 import re
 import subprocess
+import sys
 
 type_list = [ "receive", "transmit", "digi" ]
 
@@ -19,7 +18,7 @@ popen = subprocess.Popen(args, stdout=subprocess.PIPE)
 for output in iter(popen.stdout.readline, ''):
    # Had some issues with exceptions due to unrecognized characters
    # not sure yet if this did the trick...
-   output = output.encode('utf-8')
+   output = output.encode('utf-8', errors='replace')
    print output,
 
    mygroup = re.match("(\[.+\])\s+([A-Za-z0-9\-]+)\>(.+)\:(.+)", output)
@@ -47,5 +46,8 @@ for output in iter(popen.stdout.readline, ''):
       hostname = "http://127.0.0.1:5000"
       headers = {'Content-Type': 'application/json'}
       payload = {'type': type, 'call': call, 'path': path, 'description': description}
-      r = requests.post(hostname+url, headers=headers, data=json.dumps(payload))
+      try:
+         r = requests.post(hostname+url, headers=headers, data=json.dumps(payload))
+      except:
+         print "Unexpected Exception: ", sys.exc_info()[0]
 
