@@ -8,6 +8,11 @@ import json
 import re
 import subprocess
 import sys
+from requests.auth import HTTPBasicAuth
+
+my_hostname="http://127.0.0.1:5000"
+my_username="admin"
+my_password="password"
 
 type_list = [ "receive", "transmit", "digi" ]
 
@@ -43,11 +48,11 @@ for output in iter(popen.stdout.readline, ''):
       description = mygroup.group(4)
 
       url = "/RPiLCD_Web_Service/api/v1.0/sendEntry"
-      hostname = "http://127.0.0.1:5000"
       headers = {'Content-Type': 'application/json'}
       payload = {'type': type, 'call': call, 'path': path, 'description': description}
       try:
-         r = requests.post(hostname+url, headers=headers, data=json.dumps(payload))
+         r = requests.post(my_hostname+url, headers=headers, data=json.dumps(payload), 
+                           auth=HTTPBasicAuth(my_username, my_password))
       except:
          print "Unexpected Exception: ", sys.exc_info()[0]
 

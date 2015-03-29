@@ -25,9 +25,9 @@ message_queue = []
 
 # Stat Counters
 message_count = 0
-receive_msgs = 0
-transmit_msgs = 0
-gate_msgs = 0
+receive_count = 0
+transmit_count = 0
+igate_count = 0
 
 #
 # Public: lcdMessageInsert
@@ -45,6 +45,23 @@ def lcdMessageInsert(type, call, path, description):
    mq_lock.release()
 
 #  print "Exiting lcdMessageInsert"
+
+#
+# Public: lcdGetStats
+#  return basic stats for processing
+#
+def lcdGetStats():
+   global message_count, receive_count, transmit_count, igate_count
+   stat_list = { 
+      'message_count'  : message_count,
+      'receive_count'  : receive_count,
+      'transmit_count' : transmit_count,
+      'igate_count'    : igate_count
+   }
+
+   return stat_list
+
+#  print "Exiting lcdGetStats"
 
 #
 # Public: lcdMessageLoop
@@ -208,7 +225,7 @@ def _lcdScreenUpdate(color, text1, text2, text3):
 #       we are responsive enough, but not spinning too hard?
 #
 def _lcdCheckButtons():
-   global message_count, receive_msgs, transmit_msgs, gate_msgs
+   global message_count, receive_count, transmit_count, igate_count
    status_display = 0      # Button has been pushed
    updates_screen = False  # Iteration will update screen
    status_screen = 0       # selector for which info to display
@@ -266,11 +283,11 @@ def _lcdCheckButtons():
              elif status_screen == 1:
                 message_string = "Queued:\n" + str(len(message_queue))
              elif status_screen == 2:
-                message_string = "Received:\n" + str(receive_msgs)
+                message_string = "Received:\n" + str(receive_count)
              elif status_screen == 3:
-                message_string = "Transmit:\n" + str(transmit_msgs)
+                message_string = "Transmit:\n" + str(transmit_count)
              elif status_screen == 4:
-                message_string = "iGate:\n" + str(gate_msgs)
+                message_string = "iGate:\n" + str(igate_count)
              elif status_screen == 5:
                 message_string = "About:\n" + sys.argv[0]
 
@@ -298,7 +315,7 @@ def _lcdCheckButtons():
 #  work off the list of messages to display
 #
 def _lcdProcessInputQueue():
-   global receive_msgs, transmit_msgs, gate_msgs
+   global receive_count, transmit_count, igate_count
    # Pull an entry off the queue
    mq_lock.acquire()
 
@@ -314,13 +331,13 @@ def _lcdProcessInputQueue():
       # Set screen color based on the type of message 
       if message_entry[0] == "receive":
          color = "BLUE"
-         receive_msgs += 1
+         receive_count += 1
       elif message_entry[0] == "transmit":
          color = "GREEN"
-         transmit_msgs += 1
+         transmit_count += 1
       elif message_entry[0] == "gate":
          color = "PURPLE"
-         gate_msgs += 1
+         igate_count += 1
       else:
          color = "RED"
 
