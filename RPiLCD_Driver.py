@@ -41,6 +41,7 @@ last_entry     = []
 def lcdMessageInsert(type, call, path, description):
    global message_count, last_entry
    call = call + ">"
+   print type + ":" + call
    my_entry = [ type, call, path, description ]
    last_entry = my_entry
    mq_lock.acquire()
@@ -330,12 +331,13 @@ def _lcdProcessInputQueue():
    mq_lock.acquire()
 
    # Loop through and drain the message queue
-   for message_entry in message_queue:
+   while message_queue:
+
       mq_work.clear()
 
       # Remove the entry right away so we can
       # release the lock
-      message_queue.remove(message_entry)
+      message_entry = message_queue.pop(0)
       mq_lock.release()
      
       # Set screen color based on the type of message 
