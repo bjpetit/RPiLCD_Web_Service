@@ -205,19 +205,18 @@ def _lcdScreenUpdate(color, text1, text2, text3):
       if text2_len + text3_len == 0:
          break
 
-      # Break out if there is work to do
-      if len(message_queue) > 0:
-         # Leave the text up for just a little bit
-         time.sleep(.25)
-         break
-     
       # Button was pushed. fall out to let button handler do its thing
       if button_push.is_set():
          break
+      
+      # Wait a little
+      time.sleep(.20)
 
-      # wait a little 
-      time.sleep(.25)
-   
+      # Break out if there is work to do
+      if len(message_queue) > 0:
+         # Leave the text up for just a little bit
+         break
+     
 # print "Exiting _lcdScreenUpdate"
 
 
@@ -281,7 +280,7 @@ def _lcdCheckButtons():
       if status_display:
           if update_screen == False:
              timeout = timeout - 1
-             time.sleep(.15)
+             time.sleep(.20)
           elif timeout > 0:
              # Wrap, if off the end of screen list
              status_screen = status_screen % 6
@@ -298,7 +297,7 @@ def _lcdCheckButtons():
              elif status_screen == 4:
                 message_string = "iGate:\n" + str(igate_count)
              elif status_screen == 5:
-                message_string = "Digi:\n:" + str(digi_count)
+                message_string = "Digi:\n" + str(digi_count)
              elif status_screen == 5:
                 message_string = "About:\n" + sys.argv[0]
 
@@ -306,7 +305,7 @@ def _lcdCheckButtons():
              _lcdScreenUpdate("YELLOW", message_string, "", "")
 
              # Don't spin too hard
-             time.sleep(.15)
+             time.sleep(.20)
 
           if timeout == 0:
              button_push.clear()
@@ -315,7 +314,7 @@ def _lcdCheckButtons():
 
       else:
          # Don't spin too hard
-         time.sleep(.15)
+         time.sleep(.20)
 
 #  print "Exiting _lcdCheckButtons"
 
